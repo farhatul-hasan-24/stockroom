@@ -6,6 +6,8 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  is_active: boolean;
+  created_at: string;
 }
 
 export interface AuthTokens {
@@ -23,6 +25,8 @@ export interface Category {
   created_at: string;
 }
 
+export type ProductStatus = "active" | "inactive" | "discontinued";
+
 export interface Product {
   id: number;
   sku: string;
@@ -38,13 +42,15 @@ export interface Product {
   minimum_stock: number;
   unit: string;
   image_url: string;
-  status: "active" | "inactive" | "discontinued";
+  status: ProductStatus;
   is_low_stock: boolean;
   profit_margin: number;
   created_at: string;
 }
 
 // ─── Suppliers / Customers ───────────────────────────────
+export type SupplierStatus = "active" | "inactive";
+
 export interface Supplier {
   id: number;
   company_name: string;
@@ -52,7 +58,7 @@ export interface Supplier {
   phone: string;
   email: string;
   address: string;
-  status: "active" | "inactive";
+  status: SupplierStatus;
   created_at: string;
 }
 

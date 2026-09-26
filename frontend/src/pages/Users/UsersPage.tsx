@@ -24,8 +24,12 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
-const ROLE_LABELS: Record<string, string> = { admin: "Admin", manager: "Manager", sales_staff: "Sales Staff" };
-const ROLE_BADGE:  Record<string, string> = { admin: "badge-blue", manager: "badge-green", sales_staff: "badge-yellow" };
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin", manager: "Manager", sales_staff: "Sales Staff",
+};
+const ROLE_BADGE: Record<string, string> = {
+  admin: "badge-blue", manager: "badge-green", sales_staff: "badge-yellow",
+};
 
 export default function UsersPage() {
   const { user: me }              = useAuth();
@@ -74,7 +78,9 @@ export default function UsersPage() {
           {u.name[0]}
         </div>
         <div>
-          <p className="font-medium text-gray-900 text-sm">{u.name} {u.id === me?.id && <span className="text-xs text-gray-400">(you)</span>}</p>
+          <p className="font-medium text-gray-900 text-sm">
+            {u.name} {u.id === me?.id && <span className="text-xs text-gray-400">(you)</span>}
+          </p>
           <p className="text-xs text-gray-400">{u.email}</p>
         </div>
       </div> },
@@ -85,10 +91,16 @@ export default function UsersPage() {
         {u.is_active ? "Active" : "Inactive"}
       </span> },
     { key: "created_at", header: "Created", render: (u: AuthUser) =>
-      <span className="text-xs text-gray-400">{new Date((u as any).created_at).toLocaleDateString()}</span> },
+      <span className="text-xs text-gray-400">
+        {new Date(u.created_at).toLocaleDateString()}
+      </span> },
     { key: "actions", header: "", render: (u: AuthUser) => u.id !== me?.id ? (
       <button
-        className={`btn-ghost p-1.5 ${u.is_active ? "text-red-400 hover:text-red-600 hover:bg-red-50" : "text-green-500 hover:text-green-700 hover:bg-green-50"}`}
+        className={`btn-ghost p-1.5 ${
+          u.is_active
+            ? "text-red-400 hover:text-red-600 hover:bg-red-50"
+            : "text-green-500 hover:text-green-700 hover:bg-green-50"
+        }`}
         onClick={() => setToggle(u)}
         title={u.is_active ? "Deactivate" : "Activate"}
       >
@@ -109,9 +121,14 @@ export default function UsersPage() {
         }
       />
 
-      <Table columns={columns} data={users} keyFn={u => u.id} loading={loading} emptyTitle="No users found" />
+      <Table
+        columns={columns}
+        data={users}
+        keyFn={u => u.id}
+        loading={loading}
+        emptyTitle="No users found"
+      />
 
-      {/* Create User Modal */}
       <Modal open={showForm} onClose={() => setShowForm(false)} title="Create New User">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <FormField label="Full Name" error={errors.name?.message} required>
@@ -142,13 +159,13 @@ export default function UsersPage() {
         </form>
       </Modal>
 
-      {/* Toggle Active Confirm */}
       <ConfirmDialog
         open={!!toggleTarget}
         title={toggleTarget?.is_active ? "Deactivate User" : "Activate User"}
-        message={toggleTarget?.is_active
-          ? `Deactivate "${toggleTarget?.name}"? They will no longer be able to log in.`
-          : `Reactivate "${toggleTarget?.name}"? They will regain access.`
+        message={
+          toggleTarget?.is_active
+            ? `Deactivate "${toggleTarget?.name}"? They will no longer be able to log in.`
+            : `Reactivate "${toggleTarget?.name}"? They will regain access.`
         }
         danger={toggleTarget?.is_active ?? false}
         onConfirm={handleToggle}

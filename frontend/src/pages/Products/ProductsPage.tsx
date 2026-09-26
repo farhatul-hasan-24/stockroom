@@ -11,7 +11,7 @@ import {
   Table, Modal, ConfirmDialog, PageHeader, SearchBar,
   Pagination, FormField, Input, Select, Spinner,
 } from "../../components/ui";
-import type { Product, Category, Supplier, PaginatedResponse } from "../../types";
+import type { Product, Category, Supplier, PaginatedResponse, ProductStatus } from "../../types";
 
 const schema = z.object({
   sku:            z.string().min(1, "SKU is required"),
@@ -23,7 +23,7 @@ const schema = z.object({
   selling_price:  z.string().min(1, "Required"),
   minimum_stock:  z.string().default("10"),
   unit:           z.string().default("pcs"),
-  status:         z.string().default("active"),
+  status:         z.enum(["active", "inactive", "discontinued"]).default("active"),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -42,7 +42,7 @@ export default function ProductsPage() {
   const [showCats, setShowCats]     = useState(false);
 
   const params: Record<string, string> = { page: String(page) };
-  if (search)      params.search = search;
+  if (search)       params.search = search;
   if (filterStatus) params.status = filterStatus;
 
   const { data, loading, refetch } = useFetch<PaginatedResponse<Product>>(
@@ -67,7 +67,8 @@ export default function ProductsPage() {
       purchase_price: p.purchase_price,
       selling_price: p.selling_price,
       minimum_stock: String(p.minimum_stock),
-      unit: p.unit, status: p.status,
+      unit: p.unit,
+      status: p.status,
     });
     setEditing(p); setShowForm(true);
   };
@@ -80,6 +81,7 @@ export default function ProductsPage() {
         category: data.category ? Number(data.category) : null,
         supplier: data.supplier ? Number(data.supplier) : null,
         minimum_stock: Number(data.minimum_stock),
+        status: data.status as ProductStatus,
       };
       if (editing) {
         await productsApi.update(editing.id, payload);
@@ -146,7 +148,6 @@ export default function ProductsPage() {
         ) : undefined}
       />
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="w-72"><SearchBar value={search} onChange={v => { setSearch(v); setPage(1); }} placeholder="Search by name, SKU, barcode…" /></div>
         <select className="input w-40" value={filterStatus} onChange={e => { setFilter(e.target.value); setPage(1); }}>
@@ -160,7 +161,6 @@ export default function ProductsPage() {
       <Table columns={columns} data={data?.results ?? []} keyFn={p => p.id} loading={loading} emptyTitle="No products found" />
       <Pagination count={data?.count ?? 0} page={page} onChange={setPage} />
 
-      {/* Product Form Modal */}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? "Edit Product" : "New Product"} width="max-w-2xl">
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-2 gap-4">
           <FormField label="SKU" error={errors.sku?.message} required>
@@ -169,9 +169,11 @@ export default function ProductsPage() {
           <FormField label="Barcode" error={errors.barcode?.message}>
             <Input {...register("barcode")} placeholder="Optional barcode" />
           </FormField>
-          <FormField label="Product Name" error={errors.name?.message} required className="col-span-2">
-            <Input {...register("name")} placeholder="Product name" error={errors.name?.message} />
-          </FormField>
+          <div className="col-span-2">
+            <FormField label="Product Name" error={errors.name?.message} required>
+              <Input {...register("name")} placeholder="Product name" error={errors.name?.message} />
+            </FormField>
+          </div>
           <FormField label="Category">
             <Select {...register("category")}>
               <option value="">— No category —</option>
@@ -212,10 +214,8 @@ export default function ProductsPage() {
         </form>
       </Modal>
 
-      {/* Categories Modal */}
       <CategoriesModal open={showCats} onClose={() => setShowCats(false)} data={catData?.results ?? []} refetch={refetchCats} isAdmin={isAdmin} />
 
-      {/* Delete Confirm */}
       <ConfirmDialog
         open={!!delTarget}
         title="Delete Product"
@@ -228,7 +228,6 @@ export default function ProductsPage() {
   );
 }
 
-// ── Inline Categories Modal ───────────────────────────────
 function CategoriesModal({ open, onClose, data, refetch, isAdmin }: {
   open: boolean; onClose: () => void;
   data: Category[]; refetch: () => void; isAdmin: boolean;

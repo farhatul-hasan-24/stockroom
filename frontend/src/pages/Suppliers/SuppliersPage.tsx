@@ -11,15 +11,15 @@ import {
   Table, Modal, ConfirmDialog, PageHeader, SearchBar,
   Pagination, FormField, Input, Select, Spinner,
 } from "../../components/ui";
-import type { Supplier, PaginatedResponse } from "../../types";
+import type { Supplier, PaginatedResponse, SupplierStatus } from "../../types";
 
 const schema = z.object({
-  company_name:    z.string().min(1, "Company name is required"),
-  contact_person:  z.string().optional(),
-  phone:           z.string().optional(),
-  email:           z.string().email("Invalid email").optional().or(z.literal("")),
-  address:         z.string().optional(),
-  status:          z.string().default("active"),
+  company_name:   z.string().min(1, "Company name is required"),
+  contact_person: z.string().optional(),
+  phone:          z.string().optional(),
+  email:          z.string().email("Invalid email").optional().or(z.literal("")),
+  address:        z.string().optional(),
+  status:         z.enum(["active", "inactive"]).default("active"),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -47,15 +47,28 @@ export default function SuppliersPage() {
 
   const openCreate = () => { reset({}); setEditing(null); setShowForm(true); };
   const openEdit   = (s: Supplier) => {
-    reset({ company_name: s.company_name, contact_person: s.contact_person, phone: s.phone, email: s.email, address: s.address, status: s.status });
+    reset({
+      company_name: s.company_name,
+      contact_person: s.contact_person,
+      phone: s.phone,
+      email: s.email,
+      address: s.address,
+      status: s.status,
+    });
     setEditing(s); setShowForm(true);
   };
 
   const onSubmit = async (data: FormData) => {
     setSaving(true);
     try {
-      if (editing) { await suppliersApi.update(editing.id, data); toast.success("Supplier updated"); }
-      else { await suppliersApi.create(data); toast.success("Supplier created"); }
+      const payload = { ...data, status: data.status as SupplierStatus };
+      if (editing) {
+        await suppliersApi.update(editing.id, payload);
+        toast.success("Supplier updated");
+      } else {
+        await suppliersApi.create(payload);
+        toast.success("Supplier created");
+      }
       setShowForm(false); refetch();
     } catch { toast.error("Save failed"); }
     finally { setSaving(false); }
@@ -64,30 +77,43 @@ export default function SuppliersPage() {
   const handleDelete = async () => {
     if (!delTarget) return;
     setDelLoading(true);
-    try { await suppliersApi.delete(delTarget.id); toast.success("Supplier deleted"); setDelTarget(null); refetch(); }
-    catch { toast.error("Delete failed — supplier may have linked orders"); }
+    try {
+      await suppliersApi.delete(delTarget.id);
+      toast.success("Supplier deleted");
+      setDelTarget(null); refetch();
+    } catch { toast.error("Delete failed — supplier may have linked orders"); }
     finally { setDelLoading(false); }
   };
 
   const columns = [
     { key: "company_name", header: "Company", render: (s: Supplier) =>
-      <div><p className="font-medium text-gray-900">{s.company_name}</p>
-      <p className="text-xs text-gray-400">{s.contact_person}</p></div> },
-    { key: "phone", header: "Phone", render: (s: Supplier) => <span className="text-sm">{s.phone || "—"}</span> },
-    { key: "email", header: "Email", render: (s: Supplier) => <span className="text-sm">{s.email || "—"}</span> },
+      <div>
+        <p className="font-medium text-gray-900">{s.company_name}</p>
+        <p className="text-xs text-gray-400">{s.contact_person}</p>
+      </div> },
+    { key: "phone", header: "Phone", render: (s: Supplier) =>
+      <span className="text-sm">{s.phone || "—"}</span> },
+    { key: "email", header: "Email", render: (s: Supplier) =>
+      <span className="text-sm">{s.email || "—"}</span> },
     { key: "status", header: "Status", render: (s: Supplier) =>
       <span className={`badge ${s.status === "active" ? "badge-green" : "badge-gray"}`}>{s.status}</span> },
     { key: "actions", header: "", render: (s: Supplier) => (
       <div className="flex items-center gap-1 justify-end">
         <button className="btn-ghost p-1.5" onClick={() => openEdit(s)}><Pencil size={14}/></button>
-        {isAdmin && <button className="btn-ghost p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => setDelTarget(s)}><Trash2 size={14}/></button>}
+        {isAdmin && (
+          <button className="btn-ghost p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => setDelTarget(s)}>
+            <Trash2 size={14}/>
+          </button>
+        )}
       </div>
     ) },
   ];
 
   return (
     <div>
-      <PageHeader title="Suppliers" description="Manage your supplier directory"
+      <PageHeader
+        title="Suppliers"
+        description="Manage your supplier directory"
         action={<button className="btn-primary" onClick={openCreate}><Plus size={15}/> Add Supplier</button>}
       />
       <div className="mb-5 w-72">
@@ -113,7 +139,10 @@ export default function SuppliersPage() {
               <Input {...register("email")} type="email" placeholder="contact@company.com" error={errors.email?.message} />
             </FormField>
             <FormField label="Status">
-              <Select {...register("status")}><option value="active">Active</option><option value="inactive">Inactive</option></Select>
+              <Select {...register("status")}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </Select>
             </FormField>
           </div>
           <FormField label="Address">
@@ -128,8 +157,14 @@ export default function SuppliersPage() {
         </form>
       </Modal>
 
-      <ConfirmDialog open={!!delTarget} title="Delete Supplier" message={`Delete "${delTarget?.company_name}"?`}
-        onConfirm={handleDelete} onCancel={() => setDelTarget(null)} loading={delLoading} />
+      <ConfirmDialog
+        open={!!delTarget}
+        title="Delete Supplier"
+        message={`Delete "${delTarget?.company_name}"?`}
+        onConfirm={handleDelete}
+        onCancel={() => setDelTarget(null)}
+        loading={delLoading}
+      />
     </div>
   );
 }
