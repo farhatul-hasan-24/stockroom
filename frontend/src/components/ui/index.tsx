@@ -1,7 +1,5 @@
 // ─── Shared UI Components ────────────────────────────────────────────────────
-// Modal, Table, Pagination, ConfirmDialog, Spinner, EmptyState, StatCard
-
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { X, AlertTriangle, Loader2, SearchX, ChevronLeft, ChevronRight } from "lucide-react";
 
 // ── Modal ────────────────────────────────────────────────
@@ -275,7 +273,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     </select>
   )
 );
-Select.forwardRef = Select.displayName = "Select";
+Select.displayName = "Select";
 
 // ── Input ────────────────────────────────────────────────
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
